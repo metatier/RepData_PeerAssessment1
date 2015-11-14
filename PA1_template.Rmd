@@ -20,7 +20,7 @@ library(dplyr)
 ```
 
 Calculate the total number of steps per day and plot histogramm of steps per day:
-```{r}
+```{r, cache = TRUE}
 summary <- act %>% group_by(date) %>% summarise(sum = sum(steps, na.rm = TRUE))
 hist(summary$sum, breaks = 20, xlab = "Total number of steps per day", main = "Histogramm of steps per day")
 ```
