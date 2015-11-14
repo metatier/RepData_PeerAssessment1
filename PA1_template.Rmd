@@ -1,25 +1,119 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "ReproR-assgn1-MR"
+output: html_document
 ---
 
+First peer reviewed assignment for Coursera course "Reproducible Resaerch"
 
 ## Loading and preprocessing the data
 
+```{r}
+act <- read.csv("activity.csv", stringsAsFactors = FALSE)
+# reformat date
+library(lubridate)
+act$date <- ymd(act$date)
+```
 
+## What is the total number of steps taken per day?
+```{r}
+library(dplyr)
+```
 
-## What is mean total number of steps taken per day?
+Calculate the total number of steps per day and plot histogramm of steps per day:
+```{r}
+summary <- act %>% group_by(date) %>% summarise(sum = sum(steps, na.rm = TRUE))
+hist(summary$sum, breaks = 20, xlab = "Total number of steps per day", main = "Histogramm of steps per day")
+```
 
+Calculate mean of the total number of steps taken per day:
+```{r}
+print(mean(summary$sum))
+```
 
+Calculate median of the total number of steps taken per day:
+```{r}
+print(median(summary$sum))
+```
 
 ## What is the average daily activity pattern?
+Make a time series plot:
+```{r}
+summary2 <- act %>% group_by(interval) %>% summarise(mean = mean(steps, na.rm = TRUE))
+plot(summary2$interval, summary2$mean, type = "l", ylab = "mean number of steps", xlab = "interval", main = "daily activity")
+```
 
+Calculate the interval with the highest number of average steps:
+```{r}
+index <- which.max(summary2$mean)
+print(index) # interval number
+print(summary2$interval[index]) # corresponding interval
+print(summary2$mean[index]) # corresponding step value
+```
 
 
 ## Imputing missing values
+Print number of missing values:
+```{r}
+sum(is.na(act$steps))
+```
 
+The NAs all occur as whole days:
+```{r}
+na <- is.na(act$steps)  # vector of NAs
+na_days <- unique(act$date[na==TRUE])  # vector of dates that have NAs
+act1 <- act[act$date %in% na_days,]  # subset of dataframe that includes only days that have NAs
+summary(act1)
+```
+As can be seen, there are only NAs as values in act1.  
+Therefore we will impute using the global mean of steps per 5 min intervall.  
+```{r}
+act2 <- act
+act2$steps[is.na(act2$steps)] <- mean(act2$steps, na.rm = TRUE)
+mean(act2$steps, na.rm = TRUE)
+```
 
+Redo the summary statistics above with the imputed dataset:
+```{r}
+summary3 <- act2 %>% group_by(date) %>% summarise(sum = sum(steps, na.rm = TRUE))
+hist(summary3$sum, breaks = 20, xlab = "Total number of steps per day", main = "Histogramm of steps per day")
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+Calculate mean of the total number of steps taken per day
+```{r}
+print(mean(summary3$sum))
+```
+
+Calculate median of the total number of steps taken per day
+```{r}
+print(median(summary3$sum))
+```
+The imputed data leads to a larger mean and median. Also, median and mean are now the same. In the first dataset, they were different, which is always an indication that there is a large number of outliers, in this case, the outliers were caused by the NAs.
+
+## Are there any differences in activity pattern between weekdays and weekends?  
+Create daytype variable:
+```{r}
+find_daytype <- function(day) {
+        weekends <- c("Saturday", "Sunday")
+        if (day %in% weekends) {
+                "weekend"
+        } else {
+                "weekday"
+        }
+}
+
+act2$day <- weekdays(act2$date)
+act2$daytype <- sapply(act2$day, find_daytype)
+```
+
+```{r}
+# summarize data with dplyr
+summary4 <- act2 %>% group_by(daytype, interval) %>% summarise(avg_steps = mean(steps))
+```
+
+```{r}
+plot(summary4$interval[summary4$daytype=="weekday"], summary4$avg_steps[summary4$daytype=="weekday"], type = "l", ylab = "number of steps", xlab = "interval", main = "weekday")
+```
+
+```{r}
+plot(summary4$interval[summary4$daytype=="weekend"], summary4$avg_steps[summary4$daytype=="weekend"], type = "l", ylab = "number of steps", xlab = "interval", main = "weekend")
+```
